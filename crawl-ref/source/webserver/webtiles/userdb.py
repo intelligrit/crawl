@@ -61,6 +61,114 @@ class crawl_db(object):
             raise sqlite3.ProgrammingError("Database connection not initialized!")
         return contextlib.closing(self.conn.execute(*args, **kwargs))
 
+
+def using_postgresql():  # type: () -> bool
+    """Opt-in PostgreSQL storage for accounts and settings. Defaults to the
+    SQLite files, so existing servers are unaffected unless they set
+    `userdb_backend = "postgresql"`."""
+    return config.get('userdb_backend', 'sqlite') == 'postgresql'
+
+
+_PG_REWRITES = [
+    # userdb.py is written in SQLite's dialect; these rewrites are the whole
+    # difference for the queries it uses. Case-insensitive matching comes from
+    # citext columns instead of COLLATE NOCASE.
+    (re.compile(r"\s+COLLATE\s+(NOCASE|RTRIM)\b"), ""),
+    (re.compile(r"datetime\('now',\s*'-(\d+) hours'\)"), r"(now() - interval '\1 hours')"),
+    (re.compile(r"datetime\('now'\)"), "now()"),
+]
+
+
+def pg_sql(sql):  # type: (str) -> str
+    """Rewrite one of this module's SQLite queries for PostgreSQL."""
+    for pattern, replacement in _PG_REWRITES:
+        sql = pattern.sub(replacement, sql)
+    sql = sql.replace("?", "%s")
+    if sql.lstrip().startswith("INSERT OR REPLACE INTO mutesettings"):
+        sql = " ".join(sql.split())  # normalise whitespace so the suffix attaches cleanly
+        sql = sql.replace("INSERT OR REPLACE INTO", "INSERT INTO")
+        sql = sql.rstrip(";") + " ON CONFLICT (username) DO UPDATE SET mutelist = EXCLUDED.mutelist;"
+    return sql
+
+
+class _pg_cursor(object):
+    """Cursor wrapper that applies pg_sql() to every statement."""
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, sql, parameters=()):
+        return self._cursor.execute(pg_sql(sql), parameters)
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+    def __iter__(self):
+        return iter(self._cursor)
+
+
+class crawl_pg_db(crawl_db):
+    """crawl_db over a PostgreSQL connection (psycopg 3).
+
+    Same interface as crawl_db: `execute()` returns a closing cursor, and the
+    object as a context manager wraps a transaction. The connection runs in
+    autocommit mode so single statements outside `with db:` never leave a
+    transaction open. psycopg is imported lazily; it is only required when
+    this backend is selected (see requirements/postgresql.py3.txt)."""
+    def __init__(self, dsn):  # type: (str) -> None
+        self.name = dsn
+        self.conn = None
+        self._transaction = None
+        if dsn:
+            import psycopg  # optional dependency
+            self.conn = psycopg.connect(dsn, autocommit=True)
+
+    def cursor(self):
+        if not self.conn:
+            raise sqlite3.ProgrammingError("Database connection not initialized!")
+        return contextlib.closing(_pg_cursor(self.conn.cursor()))
+
+    def __enter__(self):
+        if not self.conn:
+            raise sqlite3.ProgrammingError("Database connection not initialized!")
+        self._transaction = self.conn.transaction()
+        self._transaction.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        transaction, self._transaction = self._transaction, None
+        return transaction.__exit__(*args)
+
+    def execute(self, sql, parameters=()):
+        if not self.conn:
+            raise sqlite3.ProgrammingError("Database connection not initialized!")
+        return contextlib.closing(self.conn.execute(pg_sql(sql), parameters))
+
+
+# PostgreSQL schemas. citext gives the case-insensitive matching and unique
+# username that the SQLite schema gets from COLLATE NOCASE.
+pg_settings_schema = """
+    CREATE TABLE IF NOT EXISTS mutesettings (
+        username CITEXT PRIMARY KEY NOT NULL,
+        mutelist TEXT DEFAULT ''
+    );
+"""
+pg_user_schema = """
+    CREATE EXTENSION IF NOT EXISTS citext;
+    CREATE TABLE IF NOT EXISTS dglusers (
+        id SERIAL PRIMARY KEY,
+        username CITEXT UNIQUE,
+        email CITEXT,
+        env TEXT,
+        password TEXT,
+        flags INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS recovery_tokens (
+        token TEXT PRIMARY KEY,
+        token_time TIMESTAMPTZ,
+        user_id INTEGER NOT NULL REFERENCES dglusers(id)
+    );
+"""
+
 def create_settings_db(filename):  # type: () -> None
     # note: when this behavior was converted from muting to blocking, the db
     # names were left as-is
@@ -76,6 +184,11 @@ def create_settings_db(filename):  # type: () -> None
 
 
 def ensure_settings_db_exists(quiet=False):
+    if using_postgresql():
+        db = crawl_pg_db(config.get('userdb_dsn'))
+        with db:
+            db.execute(pg_settings_schema)
+        return db
     dbname = config.get('settings_db')
     if not os.path.exists(dbname):
         if not quiet:
@@ -120,6 +233,11 @@ def create_user_db(filename):
 
 
 def ensure_user_db_exists(quiet=False):  # type: () -> None
+    if using_postgresql():
+        db = crawl_pg_db(config.get('userdb_dsn'))
+        with db:
+            db.execute(pg_user_schema)
+        return db
     dbname = config.get('password_db')
     if not os.path.exists(dbname):
         if not quiet:
@@ -135,6 +253,8 @@ user_db = crawl_db("")
 def upgrade_user_db():  # type: () -> None
     """Automatically upgrades the database."""
     global user_db, recovery_schema
+    if using_postgresql():
+        return  # the schema is created with IF NOT EXISTS
     # possibly CREATE .. IF NOT EXISTS would be more idiomatic sql...
     with user_db.cursor() as c:
         query = "SELECT name FROM sqlite_master WHERE type='table' or type='index';"
