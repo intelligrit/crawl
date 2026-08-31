@@ -555,12 +555,14 @@ bool game_state::player_is_dead() const
 
 bool game_state::game_has_random_floors() const
 {
-    return game_is_normal() || game_is_hints() || game_is_descent();
+    return game_is_normal() || game_is_hints() || game_is_descent()
+           || game_is_onward();
 }
 
 bool game_state::game_saves_prefs() const
 {
-    return game_is_normal() || game_is_hints() || game_is_descent();
+    return game_is_normal() || game_is_hints() || game_is_descent()
+           || game_is_onward();
 }
 
 bool game_state::game_is_valid_type() const
@@ -605,6 +607,12 @@ bool game_state::game_is_descent() const
     return type == GAME_TYPE_DESCENT;
 }
 
+bool game_state::game_is_onward() const
+{
+    ASSERT(game_is_valid_type());
+    return type == GAME_TYPE_ONWARD;
+}
+
 bool game_state::game_is_hints_tutorial() const
 {
     return game_is_hints() || game_is_tutorial();
@@ -635,6 +643,8 @@ string game_state::game_type_name_for(game_type _type)
         return "Dungeon Sprint";
     case GAME_TYPE_DESCENT:
         return "Dungeon Descent";
+    case GAME_TYPE_ONWARD:
+        return "Onward";
     case NUM_GAME_TYPE:
         return "Unknown";
     }
@@ -664,6 +674,8 @@ string game_state::game_savedir_path() const
         return "sprint/";
     case GAME_TYPE_DESCENT:
         return "descent/";
+    case GAME_TYPE_ONWARD:
+        return "onward/";
     default:
         return "";
     }
@@ -678,6 +690,7 @@ string game_state::game_type_qualifier() const
     case GAME_TYPE_HINTS:
     case GAME_TYPE_TUTORIAL:
     case GAME_TYPE_DESCENT:
+    case GAME_TYPE_ONWARD:
         return "-" + gametype_to_str(type);
     default:
         return "";
