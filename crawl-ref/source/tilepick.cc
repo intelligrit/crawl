@@ -4155,6 +4155,7 @@ tileidx_t tileidx_gametype(const game_type gtype)
     {
     case GAME_TYPE_NORMAL:
     case GAME_TYPE_CUSTOM_SEED:
+    case GAME_TYPE_ONWARD:
         return TILEG_STARTUP_STONESOUP;
     case GAME_TYPE_DESCENT:
         return TILEG_STARTUP_IRONSOUP;
