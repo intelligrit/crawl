@@ -1,0 +1,7 @@
+#
+# Optional: only needed with `userdb_backend = "postgresql"`. Install with
+#    pip install -r requirements/postgresql.py3.txt
+# (keep in sync with requirements.in/postgresql.txt)
+#
+-r base.py3.txt
+psycopg[binary]==3.3.4

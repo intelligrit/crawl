@@ -168,6 +168,10 @@ The server can be configured by modifying the file `config.py`. Most of
 the options are commented or should be self-evident. Suggestions:
 
 * Set uid and gid to a non-privileged user
+* Optionally keep accounts and user settings in PostgreSQL instead of the
+  SQLite files (`userdb_backend = "postgresql"`, `userdb_dsn`); see
+  `config.py` and `requirements/postgresql.py3.txt`. This lets several
+  webtiles hosts share one account database.
 * Enable logging to a file in `logging_config`
 * If required, write a script that initializes  user-specific data, like copying
   a default rc file if the user doesn't yet have one. You can have the script be

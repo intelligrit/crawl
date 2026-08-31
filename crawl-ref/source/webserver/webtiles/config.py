@@ -80,6 +80,10 @@ defaults = {
     'max_passwd_length': 20,
     'allow_password_reset': False,
     'admin_password_reset': False,
+    # 'sqlite' (the password_db/settings_db files) or 'postgresql'
+    # (userdb_dsn; requires psycopg, see requirements/postgresql.py3.txt)
+    'userdb_backend': 'sqlite',
+    'userdb_dsn': None,
     'crypt_algorithm': "broken", # should this be the default??
     'crypt_salt_length': 16,
     'login_token_lifetime': 7, # Days; set to <= 0 to disable
@@ -585,6 +589,12 @@ def validate():
     except:
         raise ValueError("Webtiles config: malformed ban list ('%s')" %
                                                         repr(get('banned')))
+
+    backend = get('userdb_backend')
+    if backend not in ('sqlite', 'postgresql'):
+        raise ValueError("Webtiles config: unknown userdb_backend '%s'" % backend)
+    if backend == 'postgresql' and not get('userdb_dsn'):
+        raise ValueError("Webtiles config: userdb_backend = 'postgresql' requires userdb_dsn")
 
     # set up defaults that are conditioned on other values
     if not has_key('settings_db'):

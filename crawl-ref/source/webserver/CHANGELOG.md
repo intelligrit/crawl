@@ -7,6 +7,16 @@ organizing principle, though it is important to know that the webtiles server
 as normally installed (e.g on dgamelaunch-config setups) always runs trunk
 code. This file is updated at least at major releases.
 
+## Unreleased
+
+New features:
+
+- An opt-in PostgreSQL backend for the account and user settings databases:
+  set `userdb_backend = "postgresql"` and `userdb_dsn`. The default remains
+  the SQLite files (`password_db`, `settings_db`), and nothing changes for
+  servers that do not set the new options. Requires `psycopg` (see
+  `requirements/postgresql.py3.txt`).
+
 ## [0.34-a0 through 0.34-a0-958-gd0e9a9ddd5]
 
 Major changes:

@@ -98,6 +98,12 @@ ssl_port = 8443
 # logging.getLogger('asyncio').setLevel(logging.DEBUG)
 
 password_db = "./webserver/passwd.db3"
+# Accounts and user settings are stored in the SQLite files above by default.
+# Large or multi-host deployments can keep them in PostgreSQL instead; the
+# schema is created on first start and SQLite is not touched. Requires
+# `pip install -r requirements/postgresql.py3.txt`.
+# userdb_backend = "postgresql"
+# userdb_dsn = "postgresql://webtiles:secret@db.example.org/webtiles"
 # Uncomment and change if you want this db somewhere separate from the
 # password_db location.
 #settings_db = "./webserver/user_settings.db3"
