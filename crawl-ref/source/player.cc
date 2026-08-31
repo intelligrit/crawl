@@ -8698,3 +8698,9 @@ bool player::allies_forbidden()
     return get_mutation_level(MUT_NO_LOVE)
            || have_passive(passive_t::no_allies);
 }
+
+int player::onward_continues() const
+{
+    return props.exists(ONWARD_CONTINUES_KEY)
+           ? props[ONWARD_CONTINUES_KEY].get_int() : 0;
+}
