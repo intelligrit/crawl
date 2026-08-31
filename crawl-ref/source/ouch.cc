@@ -43,6 +43,7 @@
 #include "item-prop.h"
 #include "items.h"
 #include "libutil.h"
+#include "macro.h"
 #include "melee-attack.h"
 #include "message.h"
 #include "mgen-data.h"
@@ -1312,6 +1313,84 @@ static void _print_endgame_messages(scorefile_entry &se)
  *  @param skip_multipliers Whether to ignore harm/vitrify/etc.
  *  @param skip_awaken Whether this damage will skip waking a sleeping player.
  */
+// "You die..." and Xom's commentary, then wait for a key. Split out so the
+// Onward prompt can show the death before asking about it.
+static void _announce_death(const scorefile_entry &se)
+{
+    canned_msg(MSG_YOU_DIE);
+    xom_death_message((kill_method_type) se.get_death_type());
+    more();
+}
+
+// The player is dead, but gets back up at the start of their next turn (see
+// revive()). Shared by Felid extra lives and Onward continues.
+static void _schedule_revival(const scorefile_entry &se,
+                              kill_method_type death_type, bool announce)
+{
+    you.pending_revival = true;
+
+    stop_delay(true);
+
+    // You wouldn't want to lose this accomplishment to a crash, would you?
+    // Especially if you manage to trigger one via lua somehow...
+    if (!crawl_state.disables[DIS_SAVE_CHECKPOINTS])
+        save_game(false);
+
+    if (announce)
+        _announce_death(se);
+
+    if (death_type != KILLED_BY_ZOT)
+        _place_player_corpse(death_type == KILLED_BY_DISINT);
+}
+
+// Quitting, winning and leaving end the game but are not deaths, so Onward
+// has nothing to offer for them.
+static bool _onward_can_continue(kill_method_type death_type)
+{
+    return death_type != KILLED_BY_QUITTING
+           && death_type != KILLED_BY_WINNING
+           && death_type != KILLED_BY_LEAVING;
+}
+
+// Onward mode: offer to carry on where the player fell for half their score.
+// `se` already reflects earlier continues, so the cost shown is what this one
+// takes. The death is shown and acknowledged first, and any keys still queued
+// from the fight are dropped, so the answer has to be a deliberate Y or N.
+static bool _onward_continue(const scorefile_entry &se)
+{
+    _announce_death(se);
+    // FLUSH_ON_FAILURE exists in every supported version and is on by
+    // default; it drops keys queued during the fight.
+    flush_input_buffer(FLUSH_ON_FAILURE);
+
+    const int score = se.get_score();
+    const int cost = score - apply_onward_penalty(score, 1);
+    // Nothing left to pay with (0 points, or a single point that halving
+    // would take entirely): this death is final.
+    if (!onward_can_afford_continue(score))
+    {
+        mprf(MSGCH_WARN, "Sorry, you don't even have the points to come back. "
+                         "Goodbye.");
+        more();
+        return false;
+    }
+    const string prompt = make_stringf(
+        "Continue in the dungeon at the cost of half your points "
+        "(%d point%s)?", cost, cost == 1 ? "" : "s");
+    const bool answer = yesno(prompt.c_str(), false, 0);
+    // A dropped connection mid-prompt must not decide for the player; keep
+    // the character and let them choose again if they die again.
+    if (crawl_state.seen_hups)
+        return true;
+    if (!answer)
+        return false;
+
+    take_note(Note(NOTE_MESSAGE, 0, 0,
+                   make_stringf("Continued onward at the cost of %d point%s.",
+                                cost, cost == 1 ? "" : "s")));
+    return true;
+}
+
 void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
           const char *death_source_name, bool skip_multipliers,
           bool skip_awaken)
@@ -1589,23 +1668,23 @@ void player_die(kill_method_type death_type, mid_t source, int dam,
 
         you.deaths++;
         you.lives--;
-        you.pending_revival = true;
-
         take_note(Note(NOTE_LOSE_LIFE, you.lives));
 
-        stop_delay(true);
+        _schedule_revival(se, death_type, true);
+        return;
+    }
+    // Onward mode: death is a choice. Felid lives are spent first because
+    // they are free; this costs half the score, so ask. No max HP means
+    // revive() would kill us straight back here, so that death is final.
+    if (crawl_state.game_is_onward() && _onward_can_continue(death_type)
+        && you.hp_max > 0 && _onward_continue(se))
+    {
+        mark_milestone("death", lowercase_first(se.long_kill_message()).c_str());
 
-        // You wouldn't want to lose this accomplishment to a crash, would you?
-        // Especially if you manage to trigger one via lua somehow...
-        if (!crawl_state.disables[DIS_SAVE_CHECKPOINTS])
-            save_game(false);
+        you.deaths++;
+        you.props[ONWARD_CONTINUES_KEY].get_int()++;
 
-        canned_msg(MSG_YOU_DIE);
-        xom_death_message((kill_method_type) se.get_death_type());
-        more();
-
-        if (death_type != KILLED_BY_ZOT)
-            _place_player_corpse(death_type == KILLED_BY_DISINT);
+        _schedule_revival(se, death_type, false);
         return;
     }
 

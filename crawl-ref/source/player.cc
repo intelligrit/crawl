@@ -9730,3 +9730,9 @@ void player::did_trigger(player_trigger_type trigger)
 {
     triggers_done[trigger]++;
 }
+
+int player::onward_continues() const
+{
+    return props.exists(ONWARD_CONTINUES_KEY)
+           ? props[ONWARD_CONTINUES_KEY].get_int() : 0;
+}
