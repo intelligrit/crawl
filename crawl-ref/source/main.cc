@@ -525,6 +525,7 @@ static void _show_commandline_options_help()
     puts("  -save-version <name>  Save file version for the given player");
     puts("  -sprint               select Sprint");
     puts("  -sprint-map <name>    preselect a Sprint map");
+    puts("  -onward               select Onward (continue after death for half your score)");
     puts("  -tutorial             select the Tutorial");
 #ifdef WIZARD
     puts("  -wizard               allow access to wizard mode");
@@ -1077,7 +1078,13 @@ static void _input()
     if (you.pending_revival)
     {
         revive();
-        bring_to_safety();
+        // Onward continues put you back where you fell, unless the floor
+        // itself would just kill you again.
+        if (!crawl_state.game_is_onward()
+            || is_feat_dangerous(env.grid(you.pos()), true))
+        {
+            bring_to_safety();
+        }
         redraw_screen();
         update_screen();
     }

@@ -44,6 +44,9 @@
 #define POWERED_BY_DEATH_KEY "powered_by_death_strength"
 #define FUGUE_KEY "fugue_of_the_fallen_bonus"
 #define FORCE_MAPPABLE_KEY "force_mappable"
+// Onward mode: how many times the player has paid half their score to keep
+// going after a death. Lives in props so it needs no save-format change.
+#define ONWARD_CONTINUES_KEY "onward_continues"
 #define TEMP_WATERWALK_KEY "temp_waterwalk"
 #define EMERGENCY_FLIGHT_KEY "emergency_flight"
 #define DISABLED_BY_KEY "disabled_by"
@@ -595,6 +598,7 @@ public:
     int get_hit_dice() const override;
     int get_experience_level() const override;
     int get_max_xl() const;
+    int onward_continues() const;
     bool is_player() const override
     {
 #ifndef DEBUG_GLOBALS
