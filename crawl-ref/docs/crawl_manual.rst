@@ -75,6 +75,11 @@ Hints Mode for Dungeon Crawl
 Dungeon Sprint
   Start one of several single-map challenge mode games of Crawl.
 
+Onward
+  Start a standard game of Crawl in which dying offers a choice: continue in
+  the dungeon where you fell, with full health and magic, at the cost of half
+  your score. Onward games keep their own saves and score lists.
+
 Instructions
   View the instructional help text you are currently reading.
 
