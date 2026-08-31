@@ -92,6 +92,11 @@ games:
     name: Descent
     options:
       - -descent
+  - id: onward-web-trunk
+    template: trunk
+    name: Onward
+    options:
+      - -onward
   - id: tut-web-trunk
     template: trunk
     name: Tutorial
