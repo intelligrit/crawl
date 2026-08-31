@@ -772,6 +772,7 @@ void scorefile_entry::init_from(const scorefile_entry &se)
     penance            = se.penance;
     wiz_mode           = se.wiz_mode;
     explore_mode       = se.explore_mode;
+    onward_continues   = se.onward_continues;
     birth_time         = se.birth_time;
     death_time         = se.death_time;
     real_time          = se.real_time;
@@ -1086,6 +1087,7 @@ void scorefile_entry::init_with_fields()
     penance      = fields->int_field("pen");
     wiz_mode     = fields->int_field("wiz");
     explore_mode = fields->int_field("explore");
+    onward_continues = fields->int_field("onward");
 
     birth_time = _parse_time(fields->str_field("start"));
     death_time = _parse_time(fields->str_field("end"));
@@ -1183,6 +1185,10 @@ void scorefile_entry::set_base_xlog_fields() const
         fields->add_field("wiz", "%d", wiz_mode);
     if (explore_mode)
         fields->add_field("explore", "%d", explore_mode);
+    // Onward games always carry the field, so a clean win is visibly onward=0
+    // rather than indistinguishable from a normal game's entry.
+    if (crawl_state.game_is_onward() || onward_continues)
+        fields->add_field("onward", "%d", onward_continues);
 
     fields->add_field("start", "%s", make_date_string(birth_time).c_str());
     fields->add_field("dur",   "%d", (int)real_time);
@@ -1540,6 +1546,7 @@ void scorefile_entry::reset()
     penance              = -1;
     wiz_mode             = 0;
     explore_mode         = 0;
+    onward_continues     = 0;
     birth_time           = 0;
     death_time           = 0;
     real_time            = -1;
@@ -1691,6 +1698,12 @@ void scorefile_entry::init(time_t dt)
     else
         ASSERT(crawl_state.game_is_sprint());
         // only sprint should use custom scores
+
+    if (crawl_state.game_is_onward())
+    {
+        onward_continues = you.onward_continues();
+        points = apply_onward_penalty(points, onward_continues);
+    }
 
     race = you.species;
     job  = you.char_class;
@@ -1937,12 +1950,42 @@ void scorefile_entry::fixup_char_name()
     }
 }
 
+// Onward mode: every continue halves whatever the run would otherwise be
+// worth, so a win that never died keeps the full score and a late death still
+// costs far more than an early one.
+int apply_onward_penalty(int points, int continues)
+{
+    for (int i = 0; i < continues && points > 0; ++i)
+        points /= 2;
+    return points;
+}
+
+bool onward_can_afford_continue(int points)
+{
+    // Need >= 2 so half rounds down to >= 1 spent and >= 1 kept.
+    return points >= 2;
+}
+
+string scorefile_entry::onward_deaths_desc() const
+{
+    if (!crawl_state.game_is_onward() && !onward_continues)
+        return "";
+    // Continues are the deaths that were paid for; a game that ended in
+    // death has one more.
+    const bool died = death_type != KILLED_BY_WINNING
+                      && death_type != KILLED_BY_QUITTING
+                      && death_type != KILLED_BY_LEAVING;
+    const int deaths = onward_continues + (died ? 1 : 0);
+    return make_stringf(" (%d death%s)", deaths, deaths == 1 ? "" : "s");
+}
+
 string scorefile_entry::single_cdesc() const
 {
     string scname;
     scname = chop_string(name, 10);
 
-    return make_stringf("%8d %s %s-%02d%s", points, scname.c_str(),
+    return make_stringf("%8d%s %s %s-%02d%s", points,
+                        onward_deaths_desc().c_str(), scname.c_str(),
                         race_class_name.c_str(), lvl,
                         (wiz_mode == 1) ? "W" : (explore_mode == 1) ? "E" : "");
 }
@@ -2024,13 +2067,14 @@ scorefile_entry::character_description(death_desc_verbosity verbosity) const
     // Please excuse the following bit of mess in the name of flavour ;)
     if (verbose)
     {
-        desc = make_stringf("%8d %s the %s (level %d",
-                  points, name.c_str(), title.c_str(), lvl);
+        desc = make_stringf("%8d%s %s the %s (level %d",
+                  points, onward_deaths_desc().c_str(), name.c_str(),
+                  title.c_str(), lvl);
     }
     else
     {
-        desc = make_stringf("%8d %s the %s %s (level %d",
-                  points, name.c_str(),
+        desc = make_stringf("%8d%s %s the %s %s (level %d",
+                  points, onward_deaths_desc().c_str(), name.c_str(),
                   _species_name(race).c_str(),
                   _job_name(job), lvl);
     }

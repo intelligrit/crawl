@@ -27,6 +27,10 @@ string hiscores_print_list(int display_count, int format, int newest_entry, int&
 void hiscores_print_all(int display_count = -1, int format = SCORE_TERSE);
 void show_hiscore_table();
 
+int apply_onward_penalty(int points, int continues);
+// Onward mode: a run can only be continued while it can pay the halving cost
+// and keep at least one point; below that, death is final.
+bool onward_can_afford_continue(int points);
 string hiscores_format_single(const scorefile_entry &se);
 string hiscores_format_single_long(const scorefile_entry &se,
                                    bool verbose = false);
@@ -122,6 +126,7 @@ private:
     int         penance;            // penance
     uint8_t     wiz_mode;           // character used wiz mode
     uint8_t     explore_mode;       // character used explore mode
+    int         onward_continues;   // Onward mode: times the player paid to continue
     time_t      birth_time;         // start time of character
     time_t      death_time;         // end time of character
     time_t      real_time;          // real playing time in seconds
@@ -177,6 +182,10 @@ public:
 
     string raw_string() const;
     bool parse(const string &line);
+
+    // Onward mode: how many times this character died, counting the death
+    // that ended the game. Empty for other modes.
+    string onward_deaths_desc() const;
 
     string hiscore_line(death_desc_verbosity verbosity) const;
 
