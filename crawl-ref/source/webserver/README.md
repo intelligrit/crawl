@@ -36,7 +36,7 @@ To run the server, you need:
   minimally to just run the server, you need Tornado 6+, `pyyaml` (also
   required for building the crawl binary), and (for python versions from 3.13
   and onward) `crypt-r`.
-* A build of DCSS with webtiles support.
+* A build of DCSS with webtiles support. (Only Crawl 0.34.x is supported for the moment in this repository.)
 
 To get webtiles support in the binary, you'll need to compile DCSS with `make
 WEBTILES=y` (and any other appropriate options). For publicly accessible

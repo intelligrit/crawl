@@ -4,12 +4,17 @@
 
 Dungeon Crawl Stone Soup is a game of dungeon exploration, combat and magic, involving characters of diverse skills, worshipping deities of great power and caprice. To win, you'll need to be a master of tactics and strategy, and prevail against overwhelming odds.
 
+## Supported Versions
+
+This repository currently supports only the **0.34.x** release series (e.g. 0.34.1). Other release series are unsupported at this time.
+
 ## Contents
 
-1. [How to Play](#how-to-play)
+1. [Supported Versions](#supported-versions)
+2. [How to Play](#how-to-play)
 3. [Community](#community)
-5. [How you can help](#how-you-can-help)
-4. [License and history information](#license-and-history-information)
+4. [How you can help](#how-you-can-help)
+5. [License and history information](#license-and-history-information)
 
 ## How to Play
 

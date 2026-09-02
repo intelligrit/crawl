@@ -72,38 +72,38 @@ templates:
     allowed_with_hold: True
   # this template doesn't specify a base template, and so inherits from
   # `default` above
-  - id: trunk
-    version: trunk
+  - id: "0.34"
+    version: "0.34"
 
 # Games are stored in order. The order of games you define in these files will
 # be preserved, and the files will be loaded in sorted order.
 games:
   # id must be unique for each game
-  - id: dcss-web-trunk
-    template: trunk
+  - id: dcss-web-0.34
+    template: "0.34"
     name: Play %v # `name` is what is shown in the webtiles lobby
-  - id: seeded-web-trunk
-    template: trunk
+  - id: seeded-web-0.34
+    template: "0.34"
     name: Seeded
     options:
       - -seed
-  - id: descent-web-trunk
-    template: trunk
+  - id: descent-web-0.34
+    template: "0.34"
     name: Descent
     options:
       - -descent
-  - id: onward-web-trunk
-    template: trunk
+  - id: onward-web-0.34
+    template: "0.34"
     name: Onward
     options:
       - -onward
-  - id: tut-web-trunk
-    template: trunk
+  - id: tut-web-0.34
+    template: "0.34"
     name: Tutorial
     options:
       - -tutorial
-  - id: sprint-web-trunk
-    template: trunk
+  - id: sprint-web-0.34
+    template: "0.34"
     name: Sprint %v
     options:
       - -sprint

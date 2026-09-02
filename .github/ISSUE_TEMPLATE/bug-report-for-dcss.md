@@ -18,7 +18,8 @@ please include your OS and OS version; if this is an online game please
 include your browser and version. -->
 
 **DCSS VERSION AND GAME INFORMATION:**
-<!-- e.g. "0.18", ""0.19-a0-1891-ge1d1fe8". If you can launch the game, you can
+<!-- NOTE: This repository currently only supports version 0.34.x.
+e.g. "0.34.1", "0.34.1-5-g543f336687". If you can launch the game, you can
 find this information by pressing ?v; the version will be at the top of the
 screen. If not, check the changelog in the 'docs' directory. If this is
 a vault issue, it will be particularly helpful to provide the game seed (found

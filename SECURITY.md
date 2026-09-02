@@ -1,22 +1,19 @@
 # Security Policy for DCSS
 
-Last updated Jan 2022.
+Last updated Sep 2026.
 
 ## Supported Versions
 
-Generally, we fully support the current unstable version, and the most recent
-stable version. At time of writing, this is:
+Currently, this repository only supports the **0.34.x** release series:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.29-a  | :white_check_mark: |
-| 0.28-b  | :white_check_mark: |
-| 0.27.1  | :white_check_mark: |
-| <0.27.1 | :x:                |
+| 0.34.x  | :white_check_mark: |
+| <0.34   | :x:                |
+| >0.34   | :x:                |
 
 We may, if the vulnerability is severe and affects online play, attempt to
-patch earlier versions. Versions before around 0.14 do not reliably build any
-more and may be impossible to patch regardless of severity.
+patch earlier 0.34.x point releases. Other release series are unsupported at this time.
 
 Online servers generally run a webtiles server version drawn from trunk, even
 if they allow play on older versions of dcss, so any vulnerability in an
